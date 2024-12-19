@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Active Users</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .active-users {
+        margin-top: 20px;
+      }
+      .active-users h3 {
+        margin-bottom: 10px;
+      }
+      .active-users ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      .active-users li {
+        margin-bottom: 5px;
+      }
+      .active-users a {
+        color: #007bff;
+        text-decoration: none;
+      }
+      .active-users a:hover {
+        text-decoration: underline;
+      }
+      .card {
+        margin-bottom: 20px;
+      }
+      .card-body {
+        padding: 15px;
+      }
+      .logout-btn {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-primary">Active Users</h3>
+        </div>
+        <div class="card-body">
+          <ul id="activeUsersList" class="list-group"></ul>
+          <button class="btn btn-danger logout-btn" id="logoutBtn">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
+      const socket = io(host);
+
+      const user = localStorage.getItem("username");
+      const activeUsersList = document.getElementById("activeUsersList");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      if (user === null) {
+        window.location.href = "/";
+      } else {
+        socket.emit("setUsername", user);
+      }
+
+      const updateActiveUsers = (users) => {
+        activeUsersList.innerHTML = "";
+        users.forEach((username) => {
+          if (user === username) {
+            return;
+          }
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = `chat?receiver=${encodeURIComponent(username)}`;
+          a.textContent = username;
+          a.className = "list-group-item list-group-item-action";
+          li.appendChild(a);
+          activeUsersList.appendChild(li);
+        });
+      };
+
+      socket.on("activeUsers", (users) => {
+        updateActiveUsers(users);
+      });
+
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("username");
+        window.location.href = "/";
+      });
+    </script>
+  </body>
+</html>

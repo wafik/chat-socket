@@ -20,13 +20,25 @@ app.use(express.static("public"));
 // Set EJS sebagai template engine
 app.set("view engine", "ejs");
 
-// Rute /cek
-app.get("/cek", (req, res) => {
-  // Contoh parameter yang akan dikirim ke tampilan
-  const host = process.env.HOST_SOCKET;
+// Contoh parameter yang akan dikirim ke tampilan
+const host = process.env.HOST_SOCKET;
 
+// Rute /cek
+app.get("/", (req, res) => {
   // Render file login.ejs dengan host
   res.render("login", { host: host });
+});
+app.get("/login", (req, res) => {
+  // Render file login.ejs dengan host
+  res.render("login", { host: host });
+});
+app.get("/active_user", (req, res) => {
+  // Render file login.ejs dengan host
+  res.render("active_user", { host: host });
+});
+app.get("/chat", (req, res) => {
+  // Render file login.ejs dengan host
+  res.render("chat", { host: host });
 });
 
 const options = {
