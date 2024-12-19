@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const Redis = require("ioredis");
 const Queue = require("bull");
 const { v4: uuidv4 } = require("uuid");
-
+require("dotenv").config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -17,12 +17,25 @@ const messageQueue = new Queue("messageQueue", {
 
 // Serve static files
 app.use(express.static("public"));
-
-mongoose.connect("mongodb://localhost:27017/chatDB", {
+console.log(process.env.MONGODB_USERNAME);
+console.log(process.env.MONGODB_PASSWORD);
+const options = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
+  auth: {
+    username: process.env.MONGODB_USERNAME,
+    password: process.env.MONGODB_PASSWORD,
+  },
+  authSource: "admin", // Jika Anda menggunakan database admin untuk otentikasi
+};
 
+mongoose
+  .connect(
+    `mongodb://${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}`,
+    options
+  )
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("Could not connect to MongoDB", err));
 const MessageSchema = new mongoose.Schema({
   messageId: { type: String, required: true, unique: true },
   sender: String,
@@ -97,8 +110,8 @@ io.on("connection", (socket) => {
       io.emit("activeUsers", Array.from(activeUsers));
     }
   });
-   // Kirim daftar pengguna aktif saat koneksi pertama kali dibuat
-   socket.emit("activeUsers", Array.from(activeUsers));
+  // Kirim daftar pengguna aktif saat koneksi pertama kali dibuat
+  socket.emit("activeUsers", Array.from(activeUsers));
 });
 
 const processMessages = async () => {
