@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        #chat-box {
+            height: 300px;
+            overflow-y: scroll;
+            background-color: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 5px;
+        }
+        .timestamp {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .online-user {
+            display: flex;
+            align-items: center;
+        }
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            background-color: green;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3>Real-Time Chat App</h3>
+            </div>
+            <!-- User List -->
+            <div class="card-body" id="user-list">
+                <h5>Online Users:</h5>
+                <ul id="users" class="list-group"></ul>
+            </div>
+            <!-- Chat Box -->
+            <div class="card-body" id="chat-box"></div>
+            <div class="card-footer">
+                <div class="input-group">
+                    <input type="text" id="message" class="form-control" placeholder="Type a message">
+                    <div class="input-group-append">
+                        <button id="send-btn" class="btn btn-primary" disabled>Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <!-- Client-side Script -->
+    <script>
+        $(document).ready(function () {
+            const socket = io();
+            let username = prompt("Enter your name:");
+            let room = "General";
+
+            if (username) {
+                socket.emit('joinRoom', { username, room });
+                $('#send-btn').prop('disabled', false);
+            }
+
+            // Send message
+            $('#send-btn').click(function () {
+                const message = $('#message').val();
+                if (message) {
+                    socket.emit('chatMessage', { message });
+                    $('#message').val('');
+                }
+            });
+
+            // Display received messages
+            socket.on('message', function (data) {
+                $('#chat-box').append(`
+                    <div class="message">
+                        <span><strong>${data.username}:</strong> ${data.message}</span>
+                        <span class="timestamp">[${data.timestamp}]</span>
+                    </div>
+                `);
+                $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);
+            });
+
+            // Update online users
+            socket.on('updateUsers', function (users) {
+                $('#users').html('');
+                users.forEach(user => {
+                    $('#users').append(`
+                        <li class="list-group-item online-user">
+                            <div class="online-dot"></div>
+                            ${user.username}
+                        </li>
+                    `);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

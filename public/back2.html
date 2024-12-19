@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f9;
+      }
+      .chat-container {
+        max-width: 600px;
+        width: 100%;
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #fff;
+      }
+      .messages {
+        height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+        background-color: #f9f9f9;
+      }
+      .message {
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .message .delete {
+        color: red;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+      .message.deleted {
+        font-style: italic;
+        color: gray;
+      }
+      .input-container {
+        display: flex;
+        padding: 10px;
+        gap: 10px;
+        background-color: #fff;
+      }
+      .input-container input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .input-container button {
+        padding: 10px 20px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .input-container button:hover {
+        background-color: #0056b3;
+      }
+      .user-input {
+        display: flex;
+        padding: 10px;
+        gap: 10px;
+        background-color: #fff;
+        margin-bottom: 10px;
+      }
+      .user-input input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .user-input button {
+        padding: 10px 20px;
+        border: none;
+        background-color: #28a745;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .user-input button:hover {
+        background-color: #218838;
+      }
+      .active-users {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background-color: #fff;
+        width: 100%;
+        max-width: 600px;
+      }
+      .active-users h3 {
+        margin-top: 0;
+      }
+      .active-users ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      .active-users li {
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="user-input">
+      <input type="text" id="usernameInput" placeholder="Enter your username" />
+      <button id="setUsername">Set Username</button>
+    </div>
+    <div class="chat-container">
+      <div class="messages" id="messages"></div>
+      <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button id="sendMessage">Send</button>
+      </div>
+    </div>
+    <div class="active-users">
+      <h3>Active Users</h3>
+      <ul id="activeUsersList"></ul>
+    </div>
+
+    <script>
+      let user = null;
+      const socket = io("http://localhost:3000");
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("messageInput");
+      const sendMessageButton = document.getElementById("sendMessage");
+      const usernameInput = document.getElementById("usernameInput");
+      const setUsernameButton = document.getElementById("setUsername");
+      const activeUsersList = document.getElementById("activeUsersList");
+
+      const renderMessage = (msg) => {
+        const messageEl = document.createElement("div");
+        messageEl.classList.add("message");
+        messageEl.id = `message-${msg.messageId}`;
+        let innerHTML = `
+          <strong>${msg.sender}</strong>: ${msg.message}
+        `;
+        if (msg.sender === user) {
+          innerHTML += `<span class="delete" data-id="${msg.messageId}">Delete</span>`;
+        }
+        messageEl.innerHTML = innerHTML;
+        messagesDiv.appendChild(messageEl);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      };
+
+      const updateActiveUsers = (users) => {
+        activeUsersList.innerHTML = "";
+        users.forEach((username) => {
+          const li = document.createElement("li");
+          li.textContent = username;
+          activeUsersList.appendChild(li);
+        });
+      };
+
+      const fetchChatHistory = async () => {
+        if (!user) return;
+
+        try {
+          const response = await fetch(`http://localhost:3000/chat/history?sender=${user}&receiver=All`);
+          if (!response.ok) {
+            throw new Error("Failed to fetch chat history");
+          }
+          const messages = await response.json();
+          messages.forEach((msg) => renderMessage(msg));
+        } catch (error) {
+          console.error("Error fetching chat history:", error);
+          alert("Failed to fetch chat history");
+        }
+      };
+
+      socket.on("newMessage", (msg) => {
+        renderMessage(msg);
+      });
+
+      socket.on("messageDeleted", ({ messageId }) => {
+        const messageEl = document.getElementById(`message-${messageId}`);
+        if (messageEl) {
+          messageEl.classList.add("deleted");
+          messageEl.innerText = "This message has been deleted.";
+        }
+      });
+
+      socket.on("activeUsers", (users) => {
+        updateActiveUsers(users);
+      });
+
+      sendMessageButton.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message && user) {
+          socket.emit("sendMessage", {
+            sender: user,
+            receiver: "All",
+            message,
+          });
+          messageInput.value = "";
+        } else if (!user) {
+          alert("Please set a username first.");
+        }
+      });
+
+      messagesDiv.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete")) {
+          const messageId = e.target.dataset.id;
+          socket.emit("deleteMessage", { messageId });
+        }
+      });
+
+      setUsernameButton.addEventListener("click", () => {
+        const username = usernameInput.value.trim();
+        if (username) {
+          user = username;
+          usernameInput.value = "";
+          usernameInput.disabled = true;
+          setUsernameButton.disabled = true;
+          socket.emit("setUsername", user);
+          fetchChatHistory();
+        } else {
+          alert("Please enter a valid username.");
+        }
+      });
+    </script>
+  </body>
+</html>

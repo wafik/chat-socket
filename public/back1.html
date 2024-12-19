@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+      }
+      .chat-container {
+        max-width: 600px;
+        width: 100%;
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .messages {
+        height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+        background-color: #f9f9f9;
+      }
+      .message {
+        margin-bottom: 10px;
+      }
+      .message .delete {
+        color: red;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+      .message.deleted {
+        font-style: italic;
+        color: gray;
+      }
+      .input-container {
+        display: flex;
+        padding: 10px;
+        gap: 10px;
+        background-color: #fff;
+      }
+      .input-container input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .input-container button {
+        padding: 10px 20px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .input-container button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="messages" id="messages"></div>
+      <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button id="sendMessage">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const socket = io("http://localhost:3000");
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("messageInput");
+      const sendMessageButton = document.getElementById("sendMessage");
+
+      //   const user = `User-${Math.floor(Math.random() * 1000)}`;
+      const user = "User-232";
+
+      const renderMessage = (msg) => {
+        const messageEl = document.createElement("div");
+        messageEl.classList.add("message");
+        console.log("user");
+        console.log(user);
+        console.log(msg);
+        messageEl.id = `message-${msg.messageId}`;
+        let innerHTML = `
+        <strong>${msg.sender}</strong>: ${msg.message}
+      `;
+        if (msg.sender === user) {
+          innerHTML += `<span class="delete" data-id="${msg.messageId}">Delete</span>`;
+        }
+        messageEl.innerHTML = innerHTML;
+        messagesDiv.appendChild(messageEl);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      };
+
+      socket.on("newMessage", (msg) => {
+        renderMessage(msg);
+      });
+
+      socket.on("messageDeleted", ({ messageId }) => {
+        const messageEl = document.getElementById(`message-${messageId}`);
+        if (messageEl) {
+          messageEl.classList.add("deleted");
+          messageEl.innerText = "This message has been deleted.";
+        }
+      });
+
+      sendMessageButton.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message) {
+          socket.emit("sendMessage", {
+            sender: user,
+            receiver: "All",
+            message,
+          });
+          messageInput.value = "";
+        }
+      });
+
+      messagesDiv.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete")) {
+          const messageId = e.target.dataset.id;
+          socket.emit("deleteMessage", { messageId });
+        }
+      });
+
+      const fetchRecentMessages = async () => {
+        const response = await fetch("http://localhost:3000/chat/recent");
+        const messages = await response.json();
+        messages.forEach((msg) => renderMessage(msg));
+      };
+
+      fetchRecentMessages();
+    </script>
+  </body>
+</html>
