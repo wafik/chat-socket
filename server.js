@@ -5,6 +5,10 @@ const mongoose = require("mongoose");
 const Redis = require("ioredis");
 const Queue = require("bull");
 const { v4: uuidv4 } = require("uuid");
+
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("./models/User");
 require("dotenv").config();
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +20,8 @@ const messageQueue = new Queue("messageQueue", {
   redis: { port: 6379, host: "127.0.0.1" },
 });
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Serve static files
 app.use(express.static("public"));
 // Set EJS sebagai template engine
@@ -29,10 +35,6 @@ app.get("/", (req, res) => {
   // Render file login.ejs dengan host
   res.render("login", { host: host });
 });
-app.get("/login", (req, res) => {
-  // Render file login.ejs dengan host
-  res.render("login", { host: host });
-});
 app.get("/active_user", (req, res) => {
   // Render file login.ejs dengan host
   res.render("active_user", { host: host });
@@ -40,6 +42,57 @@ app.get("/active_user", (req, res) => {
 app.get("/chat", (req, res) => {
   // Render file login.ejs dengan host
   res.render("chat", { host: host });
+});
+// Routes untuk tampilan
+app.get("/login", (req, res) => {
+  res.render("login", { host: host });
+});
+
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+// Registration route
+app.post("/register", async (req, res) => {
+  const { username, password, name, email } = req.body;
+  console.log(username);
+  // Check if user already exists
+  const existingUser = await User.findOne({ username });
+  if (existingUser) {
+    return res
+      .status(400)
+      .render("register", { message: "User already exists" }); // Tampilkan pesan jika pengguna sudah ada
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  // Create new user
+  const user = new User({ username, password: hashedPassword, name, email });
+  await user.save();
+
+  // Redirect ke halaman login setelah registrasi berhasil
+  res.redirect("/login");
+  // res.status(201).json({ message: "User registered successfully" });
+});
+
+// Login route
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = await User.findOne({ username });
+  if (!user) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+  res.json({ token });
 });
 
 const options = {
