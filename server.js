@@ -9,7 +9,8 @@ require("dotenv").config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
+// Impor fungsi _filterBadWord dari file filter-bad-word.js
+require("./utils/filter-bad-word.js");
 const redis = new Redis();
 const messageQueue = new Queue("messageQueue", {
   redis: { port: 6379, host: "127.0.0.1" },
@@ -85,13 +86,15 @@ io.on("connection", (socket) => {
         console.error("Invalid message data:", data);
         return;
       }
-
+      let filterMessage = _filterBadWord(message, "***");
+      console.log("cek");
+      console.log(typeof filterMessage);
       const messageId = uuidv4();
       const chatMessage = JSON.stringify({
         messageId,
         sender,
         receiver,
-        message,
+        message: filterMessage,
         timestamp: new Date().toISOString(),
       });
 
@@ -102,9 +105,16 @@ io.on("connection", (socket) => {
       console.log("Message saved to Redis successfully");
 
       // Tambahkan job untuk memproses pesan ini
-      await messageQueue.add({ task: "process_messages" }, { delay: 10000 });
+      await messageQueue.add({ task: "process_messages" }, { delay: 5000 });
+
       // Emit pesan baru ke semua klien
-      io.emit("newMessage", { messageId, sender, receiver, message });
+      io.emit("newMessage", {
+        messageId,
+        sender,
+        receiver,
+        message: filterMessage,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       console.error("Error handling sendMessage:", error);
     }

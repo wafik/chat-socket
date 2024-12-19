@@ -9,6 +9,8 @@
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
       .chat-container {
@@ -27,7 +29,6 @@
       }
       .message .delete {
         float: right;
-        color: red;
         cursor: pointer;
         font-size: 12px;
       }
@@ -64,122 +65,131 @@
         </div>
         <div class="card-body">
           <div class="chat-container">
-            <div class="messages" id="messages"></div>
-            <div class="input-container">
-              <input
-                type="text"
-                id="messageInput"
-                class="form-control"
-                placeholder="Type a message..."
-              />
-              <button id="sendMessage" class="btn btn-primary">Send</button>
-            </div>
+              <div class="messages" id="messages"></div>
+              <div class="input-container">
+                  <input
+                      type="text"
+                      id="messageInput"
+                      class="form-control"
+                      placeholder="Type a message..."
+                  />
+                  <button id="sendMessage" class="btn btn-primary">Send</button>
+              </div>
           </div>
-        </div>
       </div>
-    </div>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-      let user = localStorage.getItem("username");
-
-      const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
-      const socket = io(host);
-      const messagesDiv = document.getElementById("messages");
-      const messageInput = document.getElementById("messageInput");
-      const sendMessageButton = document.getElementById("sendMessage");
-      const receiverName = document.getElementById("receiverName");
-      const backButton = document.getElementById("backButton");
-
-      if (user === null) {
-        window.location.href = "/";
-      } else {
-        socket.emit("setUsername", user);
-      }
-
-      // Get query params from URL and set username
-      const urlParams = new URLSearchParams(window.location.search);
-      const receiver = urlParams.get("receiver");
-      if (receiver === null) {
-        window.location.href = "/active_user";
-      }
-      receiverName.textContent = receiver;
-
-      const renderMessage = (msg) => {
-        const messageEl = document.createElement("div");
-        messageEl.classList.add("message");
-        messageEl.id = `message-${msg.messageId}`;
-        let innerHTML = `
-                <span style='font-size:12px'>${msg.timestamp}</span><br>
-                <strong>${msg.sender}</strong>: ${msg.message}
-            `;
-        if (msg.sender === user) {
-          innerHTML += `<button class="btn btn-danger btn-sm delete" data-id="${msg.messageId}">Delete</button>`;
-        }
-        messageEl.innerHTML = innerHTML;
-        messagesDiv.appendChild(messageEl);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      };
-
-      const fetchChatHistory = async () => {
-        if (!user) return;
-
-        try {
-          const response = await fetch(
-            `${host}/chat/history?sender=${user}&receiver=${receiver}`
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch chat history");
+  
+      <!-- Bootstrap JS and dependencies -->
+      <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+      <script>
+          let user = localStorage.getItem("username");
+  
+          const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
+          const socket = io(host);
+          const messagesDiv = document.getElementById("messages");
+          const messageInput = document.getElementById("messageInput");
+          const sendMessageButton = document.getElementById("sendMessage");
+          const receiverName = document.getElementById("receiverName");
+          const backButton = document.getElementById("backButton");
+  
+          if (user === null) {
+              window.location.href = "/";
+          } else {
+              socket.emit("setUsername", user);
           }
-          const messages = await response.json();
-          messages.forEach((msg) => renderMessage(msg));
-        } catch (error) {
-          console.error("Error fetching chat history:", error);
-          alert("Failed to fetch chat history");
-        }
-      };
-
-      socket.on("newMessage", (msg) => {
-        renderMessage(msg);
-      });
-
-      socket.on("messageDeleted", ({ messageId }) => {
-        const messageEl = document.getElementById(`message-${messageId}`);
-        if (messageEl) {
-          messageEl.classList.add("deleted");
-          messageEl.innerText = "This message has been deleted.";
-        }
-      });
-
-      sendMessageButton.addEventListener("click", () => {
-        const message = messageInput.value.trim();
-        if (message && user) {
-          socket.emit("sendMessage", {
-            sender: user,
-            receiver: receiver,
-            message,
+  
+          // Get query params from URL and set username
+          const urlParams = new URLSearchParams(window.location.search);
+          const receiver = urlParams.get("receiver");
+          if (receiver === null) {
+              window.location.href = "/active_user";
+          }
+          receiverName.textContent = receiver;
+  
+          const renderMessage = (msg) => {
+              const messageEl = document.createElement("div");
+              messageEl.classList.add("message");
+              messageEl.id = `message-${msg.messageId}`;
+              let innerHTML = `
+                  <span style='font-size:12px'>${msg.timestamp}</span><br>
+                  <strong>${msg.sender}</strong>: ${msg.message}
+              `;
+              if (msg.sender === user) {
+                  innerHTML += `<button class="btn btn-danger btn-sm delete" data-id="${msg.messageId}">
+                                  <i class="fas fa-trash-alt"></i>
+                                </button>`;
+              }
+              messageEl.innerHTML = innerHTML;
+              messagesDiv.appendChild(messageEl);
+              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          };
+  
+          const fetchChatHistory = async () => {
+              if (!user) return;
+  
+              try {
+                  const response = await fetch(
+                      `${host}/chat/history?sender=${user}&receiver=${receiver}`
+                  );
+                  if (!response.ok) {
+                      throw new Error("Failed to fetch chat history");
+                  }
+                  const messages = await response.json();
+                  messages.forEach((msg) => renderMessage(msg));
+              } catch (error) {
+                  console.error("Error fetching chat history:", error);
+                  alert("Failed to fetch chat history");
+              }
+          };
+  
+          socket.on("newMessage", (msg) => {
+              renderMessage(msg);
           });
-          messageInput.value = "";
-        } else if (!user) {
-          alert("Please set a username first.");
-        }
-      });
-
-      messagesDiv.addEventListener("click", (e) => {
-        if (e.target.classList.contains("delete")) {
-          const messageId = e.target.dataset.id;
-          socket.emit("deleteMessage", { messageId });
-        }
-      });
-
-      backButton.addEventListener("click", () => {
-        window.location.href = "/active_user";
-      });
-
-      fetchChatHistory();
-    </script>
+  
+          socket.on("messageDeleted", ({ messageId }) => {
+              const messageEl = document.getElementById(`message-${messageId}`);
+              if (messageEl) {
+                  messageEl.classList.add("deleted");
+                  messageEl.innerText = "This message has been deleted.";
+              }
+          });
+  
+          const sendMessage = () => {
+              const message = messageInput.value.trim();
+              if (message && user) {
+                  socket.emit("sendMessage", {
+                      sender: user,
+                      receiver: receiver,
+                      message,
+                  });
+                  messageInput.value = "";
+              } else if (!user) {
+                  alert("Please set a username first.");
+              }
+          };
+  
+          sendMessageButton.addEventListener("click", sendMessage);
+  
+          // Tambahkan event listener untuk mendukung Enter
+          messageInput.addEventListener("keypress", (e) => {
+              if (e.key === "Enter") {
+                  sendMessage();
+              }
+          });
+  
+          messagesDiv.addEventListener("click", (e) => {
+              if (e.target.classList.contains("delete")) {
+                  const messageId = e.target.dataset.id;
+                  socket.emit("deleteMessage", { messageId });
+              }
+          });
+  
+          backButton.addEventListener("click", () => {
+              window.location.href = "/active_user";
+          });
+  
+          fetchChatHistory();
+      </script>
   </body>
-</html>
+  </html>
