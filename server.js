@@ -17,8 +17,18 @@ const messageQueue = new Queue("messageQueue", {
 
 // Serve static files
 app.use(express.static("public"));
-console.log(process.env.MONGODB_USERNAME);
-console.log(process.env.MONGODB_PASSWORD);
+// Set EJS sebagai template engine
+app.set("view engine", "ejs");
+
+// Rute /cek
+app.get("/cek", (req, res) => {
+  // Contoh parameter yang akan dikirim ke tampilan
+  const host = process.env.HOST_SOCKET;
+
+  // Render file login.ejs dengan host
+  res.render("login", { host: host });
+});
+
 const options = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
