@@ -8,6 +8,12 @@
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
     />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+
     <style>
       .chat-container {
         height: 70vh;
@@ -25,12 +31,16 @@
         overflow-y: auto;
       }
       .message {
-        margin-bottom: 10px;
+        margin-receivertom: 10px;
+      }
+      .timestamp-message {
+        font-size: 10px;
+        font-style: italic;
       }
       .message.user {
         text-align: right;
       }
-      .message.bot {
+      .message.receiver {
         text-align: left;
       }
       .message.user .message-content {
@@ -40,7 +50,7 @@
         display: inline-block;
         max-width: 70%;
       }
-      .message.bot .message-content {
+      .message.receiver .message-content {
         background-color: #f1f0f0;
         border-radius: 15px;
         padding: 10px;
@@ -92,11 +102,11 @@
               <input
                 type="text"
                 class="form-control"
-                id="message-input"
+                id="messageInput"
                 placeholder="Tulis pesan..."
               />
               <div class="input-group-append">
-                <button class="btn btn-primary" type="button" id="send-button">
+                <button class="btn btn-primary" type="button" id="sendMessage">
                   Kirim
                 </button>
               </div>
@@ -109,44 +119,52 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
+      let user = "<%= username %>";
+      let receiver = null;
+
+      const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
+      const socket = io(host);
+      socket.emit("setUsername", user);
       $(document).ready(function () {
         // Data chat untuk setiap pengguna
         const chatData = {
           "Pengguna 1": [
             { sender: "user", content: "Halo, bagaimana kabarmu?" },
             {
-              sender: "bot",
+              sender: "receiver",
               content: "Saya baik, terima kasih! Bagaimana denganmu?",
             },
           ],
           "Pengguna 2": [
             { sender: "user", content: "Apa kabar?" },
-            { sender: "bot", content: "Saya baik, terima kasih!" },
+            { sender: "receiver", content: "Saya baik, terima kasih!" },
           ],
           "Pengguna 3": [
             { sender: "user", content: "Halo!" },
-            { sender: "bot", content: "Halo juga!" },
+            { sender: "receiver", content: "Halo juga!" },
           ],
           "Pengguna 4": [
             { sender: "user", content: "Apa kabar?" },
-            { sender: "bot", content: "Saya baik, terima kasih!" },
+            { sender: "receiver", content: "Saya baik, terima kasih!" },
           ],
           "Pengguna 5": [
             { sender: "user", content: "Halo!" },
-            { sender: "bot", content: "Halo juga!" },
+            { sender: "receiver", content: "Halo juga!" },
           ],
         };
 
         // Fungsi untuk menampilkan chat berdasarkan pengguna yang dipilih
-        function displayChat(user) {
-          $("#chat-title").text(user);
-          const messages = chatData[user] || [];
+        function displayChat(receiver) {
+          $("#chat-title").text(receiver);
+          const messages = chatData[receiver] || [];
           const chatContainer = $("#chat-container");
           chatContainer.empty();
 
           messages.forEach((message) => {
-            const messageClass = message.sender === "user" ? "user" : "bot";
+            const messageClass =
+              message.sender === "user" ? "user" : "receiver";
             chatContainer.append(`
                         <div class="message ${messageClass}">
                             <div class="message-content">
@@ -168,34 +186,46 @@
           $(this).addClass("active");
 
           const user = $(this).data("user");
+          receiver = user;
           displayChat(user);
         });
-
+        socket.on("messageDeleted", ({ messageId }) => {
+          const messageEl = document.getElementById(`message-${messageId}`);
+          if (messageEl) {
+            messageEl.classList.add("deleted");
+            messageEl.innerText = "This message has been deleted.";
+          }
+        });
         // Event listener untuk tombol kirim pesan
-        $("#send-button").on("click", function () {
-          const userInput = $("#message-input").val().trim();
-          if (userInput === "") return;
-
+        $("#sendMessage").on("click", function () {
+          const message = $("#messageInput").val().trim();
+          if (message === "") return;
+          socket.emit("sendMessage", {
+            sender: user,
+            receiver: receiver,
+            message,
+          });
           const chatContainer = $("#chat-container");
           chatContainer.append(`
                     <div class="message user">
                         <div class="message-content">
-                            ${userInput}
+                            ${message}
                         </div>
+                        <p class="timestamp-message">2024-10-10</p>
                     </div>
                 `);
 
           // Bersihkan input setelah pesan dikirim
-          $("#message-input").val("");
+          $("#messageInput").val("");
 
           // Scroll ke bawah ketika pesan baru ditambahkan
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
         });
 
         // Event listener untuk enter di input pesan
-        $("#message-input").on("keypress", function (e) {
+        $("#messageInput").on("keypress", function (e) {
           if (e.which === 13) {
-            $("#send-button").click();
+            $("#sendMessage").click();
           }
         });
       });
