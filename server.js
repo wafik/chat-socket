@@ -92,14 +92,11 @@ app.post("/register", async (req, res) => {
       .status(400)
       .render("register", { message: "User already exists" }); // Tampilkan pesan jika pengguna sudah ada
   }
-
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 12);
-
   // Create new user
   const user = new User({ username, password: hashedPassword, name, email });
   await user.save();
-
   // Redirect ke halaman login setelah registrasi berhasil
   res.redirect("/login");
   // res.status(201).json({ message: "User registered successfully" });
@@ -124,7 +121,7 @@ app.post("/login", async (req, res) => {
   req.session.username = user.username;
 
   // Redirect ke halaman dashboard setelah login berhasil
-  res.redirect("/active_user");
+  res.redirect("/dashboard");
 });
 
 const options = {
