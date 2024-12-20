@@ -31,7 +31,7 @@
         overflow-y: auto;
       }
       .message {
-        margin-receivertom: 10px;
+        margin-bottom: 10px;
       }
       .timestamp-message {
         font-size: 10px;
@@ -179,9 +179,6 @@
         const renderMessage = (msg) => {
           const chatContainer = $("#chat-container");
           let className = "receiver";
-          console.log("msg.sender");
-          console.log(msg.sender);
-          console.log(user);
           let innerHTML = "";
           if (msg.sender === user) {
             className = "user";
@@ -189,11 +186,8 @@
                                   <i class="fas fa-trash-alt"></i>
                                 </button>`;
           }
-
-          console.log("msg");
-          console.log(msg);
           chatContainer.append(`
-                    <div class="message message-${msg.messageId} ${className}">
+                    <div id="message-${msg.messageId}" class="message message-${msg.messageId} ${className}">
                         <div class="message-content">
                             ${msg.message}
                         </div>
@@ -203,8 +197,16 @@
                 `);
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
         };
-
-        // Event listener untuk klik pengguna
+        
+        const messagesDiv = document.getElementById("chat-container");
+        messagesDiv.addEventListener("click", (e) => {
+          if (e.target.classList.contains("delete")) {
+            console.log("halo");
+            const messageId = e.target.dataset.id;
+            console.log(messageId);
+            socket.emit("deleteMessage", { messageId });
+          }
+        });
         $(".user-item").on("click", function () {
           // Hapus kelas 'active' dari semua item pengguna
           $(".user-item").removeClass("active");
@@ -213,6 +215,7 @@
 
           const user = $(this).data("user");
           receiver = user;
+          $("#chat-title").text(`Chat dengan ${user}`);
           fetchChatHistory();
         });
         socket.on("messageDeleted", ({ messageId }) => {
