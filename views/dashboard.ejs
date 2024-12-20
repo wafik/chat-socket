@@ -154,29 +154,55 @@
             { sender: "receiver", content: "Halo juga!" },
           ],
         };
+        socket.on("newMessage", (msg) => {
+          renderMessage(msg);
+        });
+        const fetchChatHistory = async () => {
+          if (!user) return;
 
-        // Fungsi untuk menampilkan chat berdasarkan pengguna yang dipilih
-        function displayChat(receiver) {
-          $("#chat-title").text(receiver);
-          const messages = chatData[receiver] || [];
+          try {
+            const response = await fetch(
+              `${host}/chat/history?sender=${user}&receiver=${receiver}`
+            );
+            if (!response.ok) {
+              throw new Error("Failed to fetch chat history");
+            }
+            const messages = await response.json();
+            const containerChat = $("#chat-container");
+            containerChat.empty();
+            messages.forEach((msg) => renderMessage(msg));
+          } catch (error) {
+            console.error("Error fetching chat history:", error);
+            alert("Failed to fetch chat history");
+          }
+        };
+        const renderMessage = (msg) => {
           const chatContainer = $("#chat-container");
-          chatContainer.empty();
+          let className = "receiver";
+          console.log("msg.sender");
+          console.log(msg.sender);
+          console.log(user);
+          let innerHTML = "";
+          if (msg.sender === user) {
+            className = "user";
+            innerHTML += `<button class="btn btn-danger btn-sm delete" data-id="${msg.messageId}">
+                                  <i class="fas fa-trash-alt"></i>
+                                </button>`;
+          }
 
-          messages.forEach((message) => {
-            const messageClass =
-              message.sender === "user" ? "user" : "receiver";
-            chatContainer.append(`
-                        <div class="message ${messageClass}">
-                            <div class="message-content">
-                                ${message.content}
-                            </div>
+          console.log("msg");
+          console.log(msg);
+          chatContainer.append(`
+                    <div class="message message-${msg.messageId} ${className}">
+                        <div class="message-content">
+                            ${msg.message}
                         </div>
-                    `);
-          });
-
-          // Scroll ke bawah ketika pesan baru ditambahkan
+                        ${innerHTML}
+                        <p class="timestamp-message">${msg.timestamp}</p>
+                    </div>
+                `);
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
-        }
+        };
 
         // Event listener untuk klik pengguna
         $(".user-item").on("click", function () {
@@ -187,7 +213,7 @@
 
           const user = $(this).data("user");
           receiver = user;
-          displayChat(user);
+          fetchChatHistory();
         });
         socket.on("messageDeleted", ({ messageId }) => {
           const messageEl = document.getElementById(`message-${messageId}`);
@@ -205,15 +231,6 @@
             receiver: receiver,
             message,
           });
-          const chatContainer = $("#chat-container");
-          chatContainer.append(`
-                    <div class="message user">
-                        <div class="message-content">
-                            ${message}
-                        </div>
-                        <p class="timestamp-message">2024-10-10</p>
-                    </div>
-                `);
 
           // Bersihkan input setelah pesan dikirim
           $("#messageInput").val("");
