@@ -128,32 +128,26 @@
       const socket = io(host);
       socket.emit("setUsername", user);
       $(document).ready(function () {
-        // Data chat untuk setiap pengguna
-        const chatData = {
-          "Pengguna 1": [
-            { sender: "user", content: "Halo, bagaimana kabarmu?" },
-            {
-              sender: "receiver",
-              content: "Saya baik, terima kasih! Bagaimana denganmu?",
-            },
-          ],
-          "Pengguna 2": [
-            { sender: "user", content: "Apa kabar?" },
-            { sender: "receiver", content: "Saya baik, terima kasih!" },
-          ],
-          "Pengguna 3": [
-            { sender: "user", content: "Halo!" },
-            { sender: "receiver", content: "Halo juga!" },
-          ],
-          "Pengguna 4": [
-            { sender: "user", content: "Apa kabar?" },
-            { sender: "receiver", content: "Saya baik, terima kasih!" },
-          ],
-          "Pengguna 5": [
-            { sender: "user", content: "Halo!" },
-            { sender: "receiver", content: "Halo juga!" },
-          ],
-        };
+        function formatTimestamp(timestamp) {
+          // Membuat objek Date dari timestamp
+          const date = new Date(timestamp);
+
+          // Mengatur zona waktu ke Jakarta (UTC+7)
+          const options = {
+            timeZone: "Asia/Jakarta",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false, // Menggunakan format 24 jam
+          };
+
+          // Mengembalikan format waktu yang diinginkan
+          return date.toLocaleString("id-ID", options);
+        }
+
         socket.on("newMessage", (msg) => {
           renderMessage(msg);
         });
@@ -192,12 +186,12 @@
                             ${msg.message}
                         </div>
                         ${innerHTML}
-                        <p class="timestamp-message">${msg.timestamp}</p>
+                        <p class="timestamp-message">${formatTimestamp(msg.timestamp)}</p>
                     </div>
                 `);
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
         };
-        
+
         const messagesDiv = document.getElementById("chat-container");
         messagesDiv.addEventListener("click", (e) => {
           if (e.target.classList.contains("delete")) {
