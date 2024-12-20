@@ -86,8 +86,17 @@
               data-user="<%= user.username %>"
             >
               <%= user.username %>
+              <span
+                id="newMessage-<%= user.username %>"
+                class="badge bg-success text-white float-end d-none"
+              >
+                NEW
+              </span>
             </li>
             <% }); %>
+            <a href="/logout"
+              ><li class="list-group-item user-item">Logout</li></a
+            >
           </ul>
         </div>
         <div class="col-md-8 chat-area">
@@ -128,6 +137,7 @@
       const socket = io(host);
       socket.emit("setUsername", user);
       $(document).ready(function () {
+        $("#chat-title").text("Selamat Datang " + user);
         function formatTimestamp(timestamp) {
           // Membuat objek Date dari timestamp
           const date = new Date(timestamp);
@@ -149,7 +159,16 @@
         }
 
         socket.on("newMessage", (msg) => {
-          renderMessage(msg);
+          console.log("msga");
+          console.log(msg);
+          if (msg.sender != user) {
+            $("#newMessage-" + msg.sender).removeClass("d-none");
+          }
+          if (receiver != null) {
+            if (msg.sender === user) {
+              renderMessage(msg);
+            }
+          }
         });
         const fetchChatHistory = async () => {
           if (!user) return;
@@ -181,12 +200,16 @@
                                 </button>`;
           }
           chatContainer.append(`
-                    <div id="message-${msg.messageId}" class="message message-${msg.messageId} ${className}">
+                    <div id="message-${msg.messageId}" class="message message-${
+            msg.messageId
+          } ${className}">
                         <div class="message-content">
                             ${msg.message}
                         </div>
                         ${innerHTML}
-                        <p class="timestamp-message">${formatTimestamp(msg.timestamp)}</p>
+                        <p class="timestamp-message">${formatTimestamp(
+                          msg.timestamp
+                        )}</p>
                     </div>
                 `);
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
@@ -195,9 +218,7 @@
         const messagesDiv = document.getElementById("chat-container");
         messagesDiv.addEventListener("click", (e) => {
           if (e.target.classList.contains("delete")) {
-            console.log("halo");
             const messageId = e.target.dataset.id;
-            console.log(messageId);
             socket.emit("deleteMessage", { messageId });
           }
         });
@@ -207,9 +228,13 @@
           // Tambahkan kelas 'active' ke item pengguna yang diklik
           $(this).addClass("active");
 
-          const user = $(this).data("user");
-          receiver = user;
-          $("#chat-title").text(`Chat dengan ${user}`);
+          const DataUser = $(this).data("user");
+          receiver = DataUser;
+          console.log("DataUser");
+          console.log(DataUser);
+          console.log(receiver);
+          $("#newMessage-" + DataUser).addClass("d-none");
+          $("#chat-title").text(`Chat dengan ${DataUser}`);
           fetchChatHistory();
         });
         socket.on("messageDeleted", ({ messageId }) => {
@@ -232,6 +257,7 @@
           // Bersihkan input setelah pesan dikirim
           $("#messageInput").val("");
 
+          const chatContainer = $("#chat-container");
           // Scroll ke bawah ketika pesan baru ditambahkan
           chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
         });

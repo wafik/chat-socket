@@ -78,7 +78,15 @@ app.get("/chat", auth, (req, res) => {
 app.get("/login", (req, res) => {
   res.render("login", { host: host });
 });
-
+// Rute untuk logout
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.redirect("/dashboard");
+    }
+    res.redirect("/login"); // Redirect ke halaman login setelah logout
+  });
+});
 app.get("/register", (req, res) => {
   res.render("register");
 });
@@ -292,17 +300,31 @@ app.get("/chat/recent", async (req, res) => {
 });
 
 app.get("/chat/history", async (req, res) => {
-  console.log(req.query);
+  // Mengambil pesan terbaru dari Redis
+  const recentMessages = await redis.lrange("chat:messages", 0, -1);
+  const formattedRecentMessages = recentMessages.map((msg) => JSON.parse(msg));
+
+  // Mengambil parameter sender dan receiver dari query
   const { sender, receiver } = req.query;
-  console.log(sender);
-  console.log(receiver);
-  const messages = await Message.find({
+
+  // Mengambil riwayat pesan dari database
+  const historyMessages = await Message.find({
     $or: [
       { sender: sender, receiver: receiver },
       { sender: receiver, receiver: sender },
     ],
   }).sort({ timestamp: 1 });
-  res.json(messages);
+
+  // Menggabungkan pesan terbaru dan riwayat pesan
+  const combinedMessages = [...formattedRecentMessages, ...historyMessages];
+
+  // Mengurutkan pesan gabungan berdasarkan timestamp
+  combinedMessages.sort(
+    (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+  );
+
+  // Mengirimkan respons
+  res.json(combinedMessages);
 });
 
 server.listen(3000, () => {
