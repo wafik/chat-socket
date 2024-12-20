@@ -65,12 +65,14 @@
       const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
       const socket = io(host);
 
-      const user = localStorage.getItem("username");
+      const user = "<%= username %>";
       const activeUsersList = document.getElementById("activeUsersList");
       const logoutBtn = document.getElementById("logoutBtn");
 
       if (user === null) {
-        window.location.href = "/";
+        // window.location.href = "/";
+
+        socket.emit("setUsername", user);
       } else {
         socket.emit("setUsername", user);
       }

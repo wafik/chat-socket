@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const Redis = require("ioredis");
 const Queue = require("bull");
 const { v4: uuidv4 } = require("uuid");
+const session = require("express-session");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -21,7 +22,16 @@ const messageQueue = new Queue("messageQueue", {
 });
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); // Konfigurasi session
+app.use(
+  session({
+    secret: "xxxdddddcccc", // Ganti dengan kunci rahasia yang lebih kuat
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }, // Set ke true jika menggunakan HTTPS
+  })
+);
+
 // Serve static files
 app.use(express.static("public"));
 // Set EJS sebagai template engine
@@ -29,15 +39,23 @@ app.set("view engine", "ejs");
 
 // Contoh parameter yang akan dikirim ke tampilan
 const host = process.env.HOST_SOCKET;
+// Middleware untuk memeriksa apakah pengguna sudah login
+const auth = (req, res, next) => {
+  if (req.session.userId) {
+    next(); // Jika sudah login, lanjutkan ke rute berikutnya
+  } else {
+    res.redirect("/login"); // Jika belum login, redirect ke halaman login
+  }
+};
 
 // Rute /cek
 app.get("/", (req, res) => {
   // Render file login.ejs dengan host
   res.render("login", { host: host });
 });
-app.get("/active_user", (req, res) => {
+app.get("/active_user", auth, (req, res) => {
   // Render file login.ejs dengan host
-  res.render("active_user", { host: host });
+  res.render("active_user", { host: host, username: req.session.username });
 });
 app.get("/chat", (req, res) => {
   // Render file login.ejs dengan host
@@ -54,7 +72,6 @@ app.get("/register", (req, res) => {
 // Registration route
 app.post("/register", async (req, res) => {
   const { username, password, name, email } = req.body;
-  console.log(username);
   // Check if user already exists
   const existingUser = await User.findOne({ username });
   if (existingUser) {
@@ -75,24 +92,26 @@ app.post("/register", async (req, res) => {
   // res.status(201).json({ message: "User registered successfully" });
 });
 
-// Login route
+// Rute untuk login
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   const user = await User.findOne({ username });
   if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    return res.render("login", { message: "Invalid credentials" });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    return res.render("login", { message: "Invalid credentials" });
   }
 
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
-  res.json({ token });
+  // Simpan informasi pengguna di session
+  req.session.userId = user.userId;
+  req.session.username = user.username;
+
+  // Redirect ke halaman dashboard setelah login berhasil
+  res.redirect("/active_user");
 });
 
 const options = {
