@@ -83,7 +83,8 @@
       <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
       <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
       <script>
-          let user = localStorage.getItem("username");
+          
+          let user = "<%= username %>";
   
           const host = "<%= host %>"; // Pastikan host dikelilingi oleh petik
           const socket = io(host);
@@ -94,7 +95,7 @@
           const backButton = document.getElementById("backButton");
   
           if (user === null) {
-              window.location.href = "/";
+            socket.emit("setUsername", user);
           } else {
               socket.emit("setUsername", user);
           }

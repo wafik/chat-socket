@@ -57,9 +57,9 @@ app.get("/active_user", auth, (req, res) => {
   // Render file login.ejs dengan host
   res.render("active_user", { host: host, username: req.session.username });
 });
-app.get("/chat", (req, res) => {
+app.get("/chat", auth, (req, res) => {
   // Render file login.ejs dengan host
-  res.render("chat", { host: host });
+  res.render("chat", { host: host, username: req.session.username });
 });
 // Routes untuk tampilan
 app.get("/login", (req, res) => {
