@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Design Bootstrap</title>
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .chat-container {
+        height: 70vh;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 10px;
+      }
+      .user-list {
+        height: 80vh;
+        overflow-y: auto;
+        border-right: 1px solid #ddd;
+      }
+      .chat-area {
+        height: 80vh;
+        overflow-y: auto;
+      }
+      .message {
+        margin-bottom: 10px;
+      }
+      .message.user {
+        text-align: right;
+      }
+      .message.bot {
+        text-align: left;
+      }
+      .message.user .message-content {
+        background-color: #dcf8c6;
+        border-radius: 15px;
+        padding: 10px;
+        display: inline-block;
+        max-width: 70%;
+      }
+      .message.bot .message-content {
+        background-color: #f1f0f0;
+        border-radius: 15px;
+        padding: 10px;
+        display: inline-block;
+        max-width: 70%;
+      }
+      .input-area {
+        border-top: 1px solid #ddd;
+        padding: 10px;
+      }
+      .active {
+        background-color: #e9ecef;
+      }
+      @media (max-width: 767px) {
+        .user-list {
+          order: 2;
+        }
+        .chat-area {
+          order: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-md-4 user-list">
+          <h5>Daftar Pengguna</h5>
+          <ul class="list-group">
+            <% users.forEach(user => { %>
+            <li
+              class="list-group-item user-item"
+              data-user="<%= user.username %>"
+            >
+              <%= user.username %>
+            </li>
+            <% }); %>
+          </ul>
+        </div>
+        <div class="col-md-8 chat-area">
+          <div class="chat-header">
+            <h5 id="chat-title">Pilih Pengguna</h5>
+          </div>
+          <div class="chat-container" id="chat-container">
+            <!-- Pesan chat akan ditampilkan di sini -->
+          </div>
+          <div class="input-area">
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                id="message-input"
+                placeholder="Tulis pesan..."
+              />
+              <div class="input-group-append">
+                <button class="btn btn-primary" type="button" id="send-button">
+                  Kirim
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        // Data chat untuk setiap pengguna
+        const chatData = {
+          "Pengguna 1": [
+            { sender: "user", content: "Halo, bagaimana kabarmu?" },
+            {
+              sender: "bot",
+              content: "Saya baik, terima kasih! Bagaimana denganmu?",
+            },
+          ],
+          "Pengguna 2": [
+            { sender: "user", content: "Apa kabar?" },
+            { sender: "bot", content: "Saya baik, terima kasih!" },
+          ],
+          "Pengguna 3": [
+            { sender: "user", content: "Halo!" },
+            { sender: "bot", content: "Halo juga!" },
+          ],
+          "Pengguna 4": [
+            { sender: "user", content: "Apa kabar?" },
+            { sender: "bot", content: "Saya baik, terima kasih!" },
+          ],
+          "Pengguna 5": [
+            { sender: "user", content: "Halo!" },
+            { sender: "bot", content: "Halo juga!" },
+          ],
+        };
+
+        // Fungsi untuk menampilkan chat berdasarkan pengguna yang dipilih
+        function displayChat(user) {
+          $("#chat-title").text(user);
+          const messages = chatData[user] || [];
+          const chatContainer = $("#chat-container");
+          chatContainer.empty();
+
+          messages.forEach((message) => {
+            const messageClass = message.sender === "user" ? "user" : "bot";
+            chatContainer.append(`
+                        <div class="message ${messageClass}">
+                            <div class="message-content">
+                                ${message.content}
+                            </div>
+                        </div>
+                    `);
+          });
+
+          // Scroll ke bawah ketika pesan baru ditambahkan
+          chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
+        }
+
+        // Event listener untuk klik pengguna
+        $(".user-item").on("click", function () {
+          // Hapus kelas 'active' dari semua item pengguna
+          $(".user-item").removeClass("active");
+          // Tambahkan kelas 'active' ke item pengguna yang diklik
+          $(this).addClass("active");
+
+          const user = $(this).data("user");
+          displayChat(user);
+        });
+
+        // Event listener untuk tombol kirim pesan
+        $("#send-button").on("click", function () {
+          const userInput = $("#message-input").val().trim();
+          if (userInput === "") return;
+
+          const chatContainer = $("#chat-container");
+          chatContainer.append(`
+                    <div class="message user">
+                        <div class="message-content">
+                            ${userInput}
+                        </div>
+                    </div>
+                `);
+
+          // Bersihkan input setelah pesan dikirim
+          $("#message-input").val("");
+
+          // Scroll ke bawah ketika pesan baru ditambahkan
+          chatContainer.scrollTop(chatContainer.prop("scrollHeight"));
+        });
+
+        // Event listener untuk enter di input pesan
+        $("#message-input").on("keypress", function (e) {
+          if (e.which === 13) {
+            $("#send-button").click();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -57,6 +57,19 @@ app.get("/active_user", auth, (req, res) => {
   // Render file login.ejs dengan host
   res.render("active_user", { host: host, username: req.session.username });
 });
+app.get("/dashboard", auth, async (req, res) => {
+  try {
+    const users = await User.find({}); // Ambil semua pengguna, hanya ambil field username
+    res.render("dashboard", {
+      host: host,
+      username: req.session.username,
+      users,
+    }); // Kirim daftar pengguna ke view
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+});
 app.get("/chat", auth, (req, res) => {
   // Render file login.ejs dengan host
   res.render("chat", { host: host, username: req.session.username });
